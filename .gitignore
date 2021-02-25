@@ -2,5 +2,8 @@
 # Folders
 venv/
 training_validation_*/
+*/__pycache__/
+__pycache__/
+.vscode
 
 # Files
