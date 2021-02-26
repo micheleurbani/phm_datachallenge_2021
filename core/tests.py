@@ -1,6 +1,7 @@
 
 import csv
 import unittest
+import pandas as pd
 from .data_handler import DataHandler
 
 class TestDataHandler(unittest.TestCase):
@@ -16,3 +17,7 @@ class TestDataHandler(unittest.TestCase):
         for i in parsed_data:
             self.assertIsInstance(i, str)
             self.assertIsInstance(parsed_data[i], list)
+
+    def test_data_frame(self):
+        df = pd.DataFrame(self.data.data)
+        print(self.data.indices)

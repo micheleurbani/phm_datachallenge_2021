@@ -18,6 +18,13 @@ class DataHandler:
         self.f_path = file_name
         self.error_code = self.read_error_class()
         self.data = self.parse()
+        # Load column names and define indexing
+        with open("training_validation_1/fields.csv", "r") as csvfile:
+            csv_reader = reader(csvfile)
+            csv_reader = [i for i in csv_reader]
+            indices = {i[0]: [j for j in i[1:] if j] for i in csv_reader[1:]}
+            indices = [(i, j) for i in indices for j in indices[i]]
+        self.indices = indices
 
     def read(self):
         """
