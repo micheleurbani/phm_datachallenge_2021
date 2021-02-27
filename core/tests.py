@@ -1,8 +1,8 @@
 
-import csv
 import unittest
 import pandas as pd
 from .data_handler import DataHandler
+
 
 class TestDataHandler(unittest.TestCase):
 
