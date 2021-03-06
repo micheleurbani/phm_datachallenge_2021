@@ -28,6 +28,7 @@ def init_dashboard(server):
 
     dash_app.layout = html.Div(
         [
+            html.Br(),
             card_tabs,
         ],
     )

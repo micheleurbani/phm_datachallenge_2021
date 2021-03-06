@@ -12,12 +12,6 @@ class TestDataHandler(unittest.TestCase):
     def test_read_error_class(self):
         self.assertIsInstance(self.data.error_code, int)
 
-    def test_parse(self):
-        parsed_data = self.data.parse()
-        for i in parsed_data:
-            self.assertIsInstance(i, str)
-            self.assertIsInstance(parsed_data[i], list)
+    def test_classes(self):
+        self.data = DataHandler("training_validation_2/class_0_101_data.csv")
 
-    def test_data_frame(self):
-        df = pd.DataFrame(self.data.data)
-        print(self.data.indices)

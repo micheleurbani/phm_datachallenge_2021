@@ -1,10 +1,13 @@
 
+import sys
 import pandas as pd
-from csv import reader
+from csv import reader, field_size_limit
 from ast import literal_eval
 
 
-class DataHandler:
+field_size_limit(sys.maxsize)
+
+class DataHandler():
     """
     The class parses the csv files and provides easy access to data and
     utilities to hadle datasets.
@@ -14,7 +17,6 @@ class DataHandler:
     :class:`pandas.DataFrame`.
 
     """
-
     def __init__(self, file_name):
         self.f_path = file_name
         self.error_code = self.read_error_class()
@@ -26,7 +28,7 @@ class DataHandler:
         Returns a list of lists, which contains the data to be parsed.
         The first row of the csv file is cut out.
         """
-        with open(self.f_path, "r") as csv_file:
+        with open(self.f_path, "r", newline="") as csv_file:
             raw_data = reader(csv_file)
             data = [row for row in raw_data]
         return data[1:]
@@ -68,5 +70,5 @@ class DataHandler:
         for signal in data:
             for i, feature in enumerate(data[signal]):
                 array[(signal, self.indices[signal][i])] = feature
-        array = pd.DataFrame(array)
-        return array
+        df = pd.DataFrame(array)
+        return df
