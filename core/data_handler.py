@@ -1,5 +1,7 @@
 
+import os
 import sys
+import numpy as np
 import pandas as pd
 from csv import reader, field_size_limit
 from ast import literal_eval
@@ -40,9 +42,6 @@ class DataHandler():
             csv_reader = reader(csvfile)
             csv_reader = [i for i in csv_reader]
             indices = {i[0]: [j for j in i[1:] if j] for i in csv_reader[1:]}
-            # indices = [(i, j) for i in indices for j in indices[i]]
-            # indices = pd.MultiIndex.from_tuples(indices,
-                                                # names=["Signal", "Feature"])
         return indices
 
     def read_error_class(self):
@@ -60,15 +59,66 @@ class DataHandler():
         """
         raw_data = self.read()
         # Parse the raw data and return a dictionary.
-        data = {row[0]: literal_eval(row[1].replace('nan', '"nan"'))
+        data = {row[0]: literal_eval(row[1].replace('nan', '"NaN"'))
                 for row in raw_data}
         # Transform each signal in a list of tuples, each containing a
         # timeseries.
         for k, v in data.items():
             data[k] = [i for i in zip(*v)]
+        # Create subindexes
         array = {}
         for signal in data:
             for i, feature in enumerate(data[signal]):
                 array[(signal, self.indices[signal][i])] = feature
-        df = pd.DataFrame(array)
+        # Check the length of the timeseries and cut them to the length of the
+        # shortest
+        min_len = min([len(v) for v in array.values()])
+        for k, v in array.items():
+            array[k] = v[:min_len]
+        # Force all data to be float or NaN if inference to float does not work
+        df = pd.DataFrame(array, dtype="float")
         return df
+
+def load_training_dataset():
+    """
+    Utility function that returns a numpy array containing all the data in the
+    `training_validation_1` folder.
+    """
+    folder = "training_validation_1"
+    file_names = os.listdir(folder)
+    X = []
+    for fname in file_names:
+        try:
+            x = DataHandler(os.path.join(folder, fname)).data
+            X.append(x)
+        except ValueError as e:
+            print("During processigng of", fname,
+                  "the following error occured:")
+            print(e)
+    return pd.concat(X)
+
+def assess_NA(data):
+    """
+    Returns a pandas dataframe denoting the total number of NA values and the
+    percentage of NA values in each column.
+    The column names are noted on the index.
+
+    Parameters
+    ----------
+    data: dataframe
+    """
+    # pandas series denoting features and the sum of their null values
+    null_sum = data.isnull().sum()# instantiate columns for missing data
+    total = null_sum.sort_values(ascending=False)
+    percent = (((null_sum / len(data.index))*100).round(2))\
+        .sort_values(ascending=False)
+
+    # concatenate along the columns to create the complete dataframe
+    df_NA = pd.concat([total, percent], axis=1,
+                      keys=['Number of NA', 'Percent NA'])
+
+    # drop rows that don't have any missing data; omit if you want to keep all
+    # rows
+    df_NA = df_NA[ (df_NA.T != 0).any() ]
+
+    return df_NA
