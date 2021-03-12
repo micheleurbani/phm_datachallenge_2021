@@ -30,10 +30,8 @@ class TestTrainingDataloader(unittest.TestCase):
 class TestAAKR(unittest.TestCase):
 
     def setUp(self):
-        training_dataset = load_training_dataset().dropna(axis=1).head(5000).\
-                           to_numpy()
+        training_dataset = load_training_dataset().dropna(axis=1).head(5000)
         self.aakr = AAKR(training_data=training_dataset)
 
-    def test_covariance(self):
-
-        print(np.cov(self.aakr.X))
+    # def test_variance_matrix(self):
+        # print(self.aakr.variance_matrix)
