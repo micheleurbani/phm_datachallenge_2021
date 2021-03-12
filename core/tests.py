@@ -1,7 +1,9 @@
 
 import unittest
+import numpy as np
 import pandas as pd
 from .data_handler import DataHandler, load_training_dataset, assess_NA
+from .aakr import AAKR
 
 
 class TestDataHandler(unittest.TestCase):
@@ -23,3 +25,15 @@ class TestTrainingDataloader(unittest.TestCase):
         print(X.info())
         na_df = assess_NA(X)
         print(na_df)
+
+
+class TestAAKR(unittest.TestCase):
+
+    def setUp(self):
+        training_dataset = load_training_dataset().dropna(axis=1).head(5000).\
+                           to_numpy()
+        self.aakr = AAKR(training_data=training_dataset)
+
+    def test_covariance(self):
+
+        print(np.cov(self.aakr.X))

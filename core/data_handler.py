@@ -1,13 +1,13 @@
 
 import os
 import sys
-import numpy as np
 import pandas as pd
 from csv import reader, field_size_limit
 from ast import literal_eval
 
 
 field_size_limit(sys.maxsize)
+
 
 class DataHandler():
     """
@@ -79,6 +79,7 @@ class DataHandler():
         df = pd.DataFrame(array, dtype="float")
         return df
 
+
 def load_training_dataset():
     """
     Utility function that returns a numpy array containing all the data in the
@@ -97,6 +98,7 @@ def load_training_dataset():
             print(e)
     return pd.concat(X)
 
+
 def assess_NA(data):
     """
     Returns a pandas dataframe denoting the total number of NA values and the
@@ -108,7 +110,7 @@ def assess_NA(data):
     data: dataframe
     """
     # pandas series denoting features and the sum of their null values
-    null_sum = data.isnull().sum()# instantiate columns for missing data
+    null_sum = data.isnull().sum()  # instantiate columns for missing data
     total = null_sum.sort_values(ascending=False)
     percent = (((null_sum / len(data.index))*100).round(2))\
         .sort_values(ascending=False)
@@ -119,6 +121,6 @@ def assess_NA(data):
 
     # drop rows that don't have any missing data; omit if you want to keep all
     # rows
-    df_NA = df_NA[ (df_NA.T != 0).any() ]
+    df_NA = df_NA[(df_NA.T != 0).any()]
 
     return df_NA
