@@ -2,6 +2,7 @@
 import os
 import sys
 import pandas as pd
+from tqdm import tqdm
 from csv import reader, field_size_limit
 from ast import literal_eval
 
@@ -9,118 +10,132 @@ from ast import literal_eval
 field_size_limit(sys.maxsize)
 
 
-class DataHandler():
+def read(file_path):
     """
-    The class parses the csv files and provides easy access to data and
-    utilities to hadle datasets.
-
-    :param str file_path: the path to the file containig data.
-    :return: an instance of the object (which can be transformed into a
-    :class:`pandas.DataFrame`.
-
-    """
-    def __init__(self, file_name):
-        self.f_path = file_name
-        self.error_code = self.read_error_class()
-        self.indices = self.read_indices()
-        self.data = self.parse()
-
-    def read(self):
-        """
-        Returns a list of lists, which contains the data to be parsed.
-        The first row of the csv file is cut out.
-        """
-        with open(self.f_path, "r", newline="") as csv_file:
-            raw_data = reader(csv_file)
-            data = [row for row in raw_data]
-        return data[1:]
-
-    @staticmethod
-    def read_indices():
-        # Load column names and define indexing
-        with open("training_validation_2/fields.csv", "r") as csvfile:
-            csv_reader = reader(csvfile)
-            csv_reader = [i for i in csv_reader]
-            indices = {i[0]: [j for j in i[1:] if j] for i in csv_reader[1:]}
-        return indices
-
-    def read_error_class(self):
-        """
-        Returns the error class from the name of the file.
-        """
-        start = self.f_path.find("_", self.f_path.find("class"))
-        end = self.f_path.find("_", start + 1)
-        return int(self.f_path[start + 1:end])
-
-    def parse(self):
-        """
-        Returns a :class:`pandas.DataFrame` with multi-indexing divided by
-        signals and features.
-        """
-        raw_data = self.read()
-        # Parse the raw data and return a dictionary.
-        data = {row[0]: literal_eval(row[1].replace('nan', '"NaN"'))
-                for row in raw_data}
-        # Transform each signal in a list of tuples, each containing a
-        # timeseries.
-        for k, v in data.items():
-            data[k] = [i for i in zip(*v)]
-        # Create subindexes
-        array = {}
-        for signal in data:
-            for i, feature in enumerate(data[signal]):
-                array[(signal, self.indices[signal][i])] = feature
-        # Check the length of the timeseries and cut them to the length of the
-        # shortest
-        min_len = min([len(v) for v in array.values()])
-        for k, v in array.items():
-            array[k] = v[:min_len]
-        # Force all data to be float or NaN if inference to float does not work
-        df = pd.DataFrame(array, dtype="float")
-        return df
-
-
-def load_training_dataset():
-    """
-    Utility function that returns a numpy array containing all the data in the
-    `training_validation_1` folder.
-    """
-    folder = "training_validation_1"
-    file_names = os.listdir(folder)
-    X = []
-    for fname in file_names:
-        try:
-            x = DataHandler(os.path.join(folder, fname)).data
-            X.append(x)
-        except ValueError as e:
-            print("During processigng of", fname,
-                  "the following error occured:")
-            print(e)
-    return pd.concat(X)
-
-
-def assess_NA(data):
-    """
-    Returns a pandas dataframe denoting the total number of NA values and the
-    percentage of NA values in each column.
-    The column names are noted on the index.
+    Read the csv file.
 
     Parameters
     ----------
-    data: dataframe
+    file_path : str
+        The path to the file complete of folder name.
+
+    Returns
+    -------
+    data : list
+        The list of rows in the file as strings.
     """
-    # pandas series denoting features and the sum of their null values
-    null_sum = data.isnull().sum()  # instantiate columns for missing data
-    total = null_sum.sort_values(ascending=False)
-    percent = (((null_sum / len(data.index))*100).round(2))\
-        .sort_values(ascending=False)
+    with open(file_path, "r", newline="") as csv_file:
+        raw_data = reader(csv_file)
+        data = [row for row in raw_data]
+    return data[1:]
 
-    # concatenate along the columns to create the complete dataframe
-    df_NA = pd.concat([total, percent], axis=1,
-                      keys=['Number of NA', 'Percent NA'])
 
-    # drop rows that don't have any missing data; omit if you want to keep all
-    # rows
-    df_NA = df_NA[(df_NA.T != 0).any()]
+def parse(raw_data):
+    """
+    Parse the list of strings containing raw data from csv by
+    `ast.literal_eval`. The `nan` values are replaced with strings (`NaN`).
 
-    return df_NA
+    Parameters
+    ----------
+    data : list
+        The list of string containig raw data.
+
+    Returns
+    -------
+    data : dict
+        A dictionary containing signals' names as keyworkds and a list of
+        tuples as values. Each list contains some tuples corresponding to
+        signal's features.
+
+    """
+    # Parse the raw data and return a dictionary.
+    data = {row[0]: literal_eval(row[1].replace('nan', '"NaN"'))
+            for row in raw_data}
+    # Transform each signal in a list of tuples, each containing a
+    # timeseries.
+    for k, v in data.items():
+        data[k] = [i for i in zip(*v)]
+
+    return data
+
+
+def sanity_checks(data):
+    """
+    The followign sanity checks are performed:
+
+        1) Check the length of each timeseris and cut them to the shortes.
+        2) Check the number of fetures: if vCnt of the signal
+        NumberFuseDetected is not present, then add a column containing
+        `np.nan` objects for compliance of indexing.
+
+    Parameters
+    ----------
+    data : dict
+        The dicts obtained from parsing of raw data using `parse()`.
+
+    Returns
+    -------
+    data : dict
+        The dictionary containing "sanitized" data.
+
+    """
+    min_len = min([min([len(i) for i in v]) for v in data.values()])
+    # Check the length of timeseries
+    for signal, features in data.items():
+        for i, _ in enumerate(features):
+            data[signal][i] = data[signal][i][:min_len]
+    # Check for the existence of vCnt feature for the signal NumberFuseDetected
+    if sum([len(i) for i in data.values()]) == 246:
+        # The feature vFreq is located in position 1 in the structure of
+        # features
+        data["NumberFuseDetected"].insert(1, tuple(["NaN" for _ in
+                                                    range(min_len)]))
+    return data
+
+
+def read_indices():
+    # Load column names and define indexing
+    with open("training_validation_2/fields.csv", "r") as csvfile:
+        csv_reader = reader(csvfile)
+        csv_reader = [i for i in csv_reader]
+        indices = {i[0]: [j for j in i[1:] if j] for i in csv_reader[1:]}
+    return indices
+
+
+def read_dataset(file_path):
+    """
+    Read and parse a dataset of the competion.
+
+    Parameters
+    ----------
+    file_path : str
+        The path to the file.
+
+    Returns
+    -------
+    df : pandas DataFrame
+        The dataframe complete of MultiIndex.
+    """
+    # Read raw data from csv.
+    X = read(file_path=file_path)
+    # Parse row data.
+    X = parse(X)
+    # Performa sanity checks
+    X = sanity_checks(X)
+    # Add subindexes
+    array, indices = {}, read_indices()
+    for signal in X:
+        for i, feature in enumerate(X[signal]):
+            array[(signal, indices[signal][i])] = feature
+    # Generate pd.MultiIndex
+    index = pd.MultiIndex.from_tuples(
+        list(array.keys()),
+        names=["signal", "feature"]
+    )
+    # Force all data to be float or NaN if inference to float does not work
+    df = pd.DataFrame(
+        data=array,
+        dtype="float",
+        columns=index,
+    )
+    return df
