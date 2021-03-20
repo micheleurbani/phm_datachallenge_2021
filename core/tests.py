@@ -1,14 +1,19 @@
 
 import os
 import unittest
-from random import choice
+from random import choice, seed
 from itertools import chain
 from core.data_handler import (
     read,
     parse,
     sanity_checks,
-    read_dataset
+    read_dataset,
+    load_training_dataset,
 )
+from core.aakr import AAKR
+
+
+seed("294845")
 
 class TestReadDataset(unittest.TestCase):
 
@@ -47,3 +52,14 @@ class TestReadDataset(unittest.TestCase):
     def test_read_dataset(self):
         X = read_dataset(self.file_path)
         self.assertEqual(len(list(X.columns)), 247)
+
+    def test_load_training_dataset(self):
+        X = load_training_dataset(percent_data=0.3)
+        self.assertEqual(len(list(X.columns)), 247)
+        self.assertGreaterEqual(len(X), 1)
+
+
+class TestAAKR(unittest.TestCase):
+
+    def setUp(self):
+        self.aakr = AAKR()

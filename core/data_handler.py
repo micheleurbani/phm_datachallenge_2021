@@ -3,8 +3,11 @@ import os
 import sys
 import pandas as pd
 from tqdm import tqdm
-from csv import reader, field_size_limit
+from math import floor
+from random import sample
 from ast import literal_eval
+from itertools import product
+from csv import reader, field_size_limit
 
 
 field_size_limit(sys.maxsize)
@@ -139,3 +142,35 @@ def read_dataset(file_path):
         columns=index,
     )
     return df
+
+
+def load_training_dataset(percent_data):
+    """
+    Load all the training datasets if not otherwise specified.
+
+    Parameters
+    ----------
+    percent_data : float
+        The percentage of training data to be loaded expressed as decimal in
+        (0,1].
+
+    Returns
+    -------
+    df : `pandas.DataFrame`
+        The dataset containing training data.
+
+    """
+    assert 0 < percent_data <=1
+    folder = "training_validation_1"
+    fnames = os.listdir(folder)
+    n_datasets = len(fnames)
+    n_datasets_to_load = max([0, floor(n_datasets * percent_data)])
+    fnames = sample(fnames, n_datasets_to_load)
+    return pd.concat(
+        [
+            i for i in map(
+                read_dataset,
+                [os.path.join(folder, fname) for fname in fnames]
+            )
+        ]
+    )
