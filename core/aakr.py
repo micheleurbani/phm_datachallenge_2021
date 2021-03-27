@@ -1,5 +1,10 @@
 
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.covariance import (
+    empirical_covariance,
+)
+from scipy.spatial.distance import cdist
 
 
 class AAKR(object):
@@ -7,66 +12,43 @@ class AAKR(object):
     A wrapper class containing all the functions required to perform
     reconstruction of a signal using AAKR.
 
-    Parameters:
-    -----------
-
-    training_data : a :class:`pandas.DataFrame` containing the training data.
+    Parameters
+    ----------
+    h : float
+        The bandwidth parameter to compute the radial basis function.
 
     """
 
-    def __init__(self, training_data):
-        self.X = training_data
-        self.S = self.inverse_variance_matrix()
+    def __init__(self, h=1.0):
+        # Properties
+        self.h = h
 
-    def inverse_variance_matrix(self):
-        cov = self.X.cov().to_numpy()
-        inv_variance = np.zeros_like(cov)
-        np.fill_diagonal(inv_variance, 1 / cov.diagonal())
-        return inv_variance
+        # Attributes
+        self.w = None  # the weights of each observation in X
+        self.VI = None  # placeholder for the inverse covariance matrix
 
-    @staticmethod
-    def mahalanobis_distance(u, v, S):
+    def predict(self, X, Y):
         """
-        Compute the Mahalanobis distance between two vectors `u` and `v`.
 
-        Parameters
-        ----------
-        u : (N, ) array_like
-            Input array.
-
-        v : (N, ) array_like
-            Input array.
-
-        S : (N, N) ndarray
-            The inverse covariance matrix.
+        Parameters:
+        -----------
+        X : (N_a, N_features)
+            array_like containing training data.
+        Y : (N_b, N_features)
+            array_like containing the observations to be reconstructed.
 
         Returns
         -------
-        The square of the Mahalanobis distance between `u` and `v`.
+        self
+            Fitted estimator.
         """
-        S = np.atleast_2d(S)
-        delta = u - v
-        return np.dot(np.dot(delta, np.linalg.inv(S)), delta)
-
-    def gaussian_radial_basis_function(self, u, v, h):
-        """
-        Compute the scalar value defined by the standard radial basis function
-        with bandwidth parameter `h`.
-
-        Parameters
-        ----------
-        u : (N, ) array_like
-            Input array.
-
-        v : (N, ) array_like
-            Input array.
-
-        h : scalar
-            The bandwidth parameter.
-
-        Returns
-        -------
-        The scalar value of the radial basis function.
-        """
-        return (2 * np.pi * h**2)**(-1) * \
-            np.exp(-self.mahalanobis_distance(u, v, self.S) / 2 * h**2)
+        assert X.ndim >= 2
+        assert Y.ndim >= 2
+        # Estimate the empirical covariance of the dataset X
+        V = empirical_covariance(X)
+        self.VI = np.zeros_like(V)
+        np.fill_diagonal(self.VI, 1/np.diag(V))
+        # Compute the Mahalanobis distance
+        r2 = cdist(X, Y, metric='mahalanobis', VI=self.VI)
+        # Compute the kernel
+        self.w = (1 / (2 * np.pi * self.h**2)**0.5) * np.exp(- r2**2 / (2 * self.h**2))

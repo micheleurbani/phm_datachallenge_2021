@@ -1,6 +1,7 @@
 
 import os
 import unittest
+import numpy as np
 from random import choice, seed
 from itertools import chain
 from core.data_handler import (
@@ -11,9 +12,11 @@ from core.data_handler import (
     load_training_dataset,
 )
 from core.aakr import AAKR
+from sklearn.feature_selection import VarianceThreshold
 
 
 seed("294845")
+
 
 class TestReadDataset(unittest.TestCase):
 
@@ -62,4 +65,17 @@ class TestReadDataset(unittest.TestCase):
 class TestAAKR(unittest.TestCase):
 
     def setUp(self):
+        self.X = load_training_dataset(percent_data=0.2)
         self.aakr = AAKR()
+
+    def test_fit(self):
+
+        np.set_printoptions(threshold=1000)
+        # Drop columns with missing values
+        X = self.X.dropna(axis=1)
+        # Pre-processing: drop features with almost zero variance
+        f_sel = VarianceThreshold(threshold=0.01)
+        X = f_sel.fit_transform(X.to_numpy())
+        self.aakr.predict(X, np.expand_dims(X[2,:], axis=0))
+        self.aakr.predict(X, X[2:5,:])
+
