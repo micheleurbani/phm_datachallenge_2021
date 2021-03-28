@@ -76,6 +76,5 @@ class TestAAKR(unittest.TestCase):
         # Pre-processing: drop features with almost zero variance
         f_sel = VarianceThreshold(threshold=0.01)
         X = f_sel.fit_transform(X.to_numpy())
-        self.aakr.predict(X, np.expand_dims(X[2,:], axis=0))
-        self.aakr.predict(X, X[2:5,:])
-
+        nc1 = self.aakr.predict(X, np.expand_dims(X[2,:], axis=0))
+        nc2 = self.aakr.predict(X, X[2:5,:])

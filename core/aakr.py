@@ -1,6 +1,5 @@
 
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.covariance import (
     empirical_covariance,
 )
@@ -51,4 +50,15 @@ class AAKR(object):
         # Compute the Mahalanobis distance
         r2 = cdist(X, Y, metric='mahalanobis', VI=self.VI)
         # Compute the kernel
-        self.w = (1 / (2 * np.pi * self.h**2)**0.5) * np.exp(- r2**2 / (2 * self.h**2))
+        self.w = (1 / (2 * np.pi * self.h**2)**0.5) * \
+            np.exp(- r2**2 / (2 * self.h**2))
+        # Reconstruct the signal
+        return np.stack(
+            [
+                np.array(
+                    [np.average(X[:, j], axis=0, weights=self.w[:, i])
+                        for j in range(X.shape[1])]
+                )
+                for i in range(Y.shape[0])
+            ]
+        )
