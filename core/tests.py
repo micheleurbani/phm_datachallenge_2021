@@ -12,6 +12,8 @@ from core.data_handler import (
     load_training_dataset,
 )
 from core.aakr import AAKR
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import make_pipeline
 from sklearn.feature_selection import VarianceThreshold
 
 
@@ -68,13 +70,14 @@ class TestAAKR(unittest.TestCase):
         self.X = load_training_dataset(percent_data=0.2)
         self.aakr = AAKR()
 
-    def test_fit(self):
-
-        np.set_printoptions(threshold=1000)
-        # Drop columns with missing values
-        X = self.X.dropna(axis=1)
-        # Pre-processing: drop features with almost zero variance
-        f_sel = VarianceThreshold(threshold=0.01)
-        X = f_sel.fit_transform(X.to_numpy())
-        nc1 = self.aakr.predict(X, np.expand_dims(X[2,:], axis=0))
-        nc2 = self.aakr.predict(X, X[2:5,:])
+    def test_predict(self):
+        # Create pipeline for pre-processing of data
+        pipe = make_pipeline(
+            SimpleImputer(),
+            VarianceThreshold(threshold=0.01),
+        )
+        X = pipe.fit(self.X)
+        X = pipe.transform(self.X)
+        Y = read_dataset("training_validation_2/class_0_101_data.csv")
+        Y = pipe.transform(Y)
+        self.assertEqual(X.shape[1], Y.shape[1])
