@@ -71,13 +71,9 @@ class TestAAKR(unittest.TestCase):
         self.aakr = AAKR()
 
     def test_predict(self):
-        # Create pipeline for pre-processing of data
-        pipe = make_pipeline(
-            SimpleImputer(),
-            VarianceThreshold(threshold=0.01),
-        )
-        X = pipe.fit(self.X)
-        X = pipe.transform(self.X)
         Y = read_dataset("training_validation_2/class_0_101_data.csv")
-        Y = pipe.transform(Y)
+        Y = self.aakr.predict(self.X, Y)
+        # Check that the number of features is the same for the train and test
+        # sets.
+        X = self.aakr.transform(self.X)
         self.assertEqual(X.shape[1], Y.shape[1])

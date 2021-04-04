@@ -4,7 +4,7 @@ import pandas as pd
 from os import listdir
 from itertools import product
 import plotly.graph_objects as go
-from core.data_handler import DataHandler
+from core.data_handler import read_dataset
 
 import dash_core_components as dcc
 import dash_html_components as html
@@ -146,8 +146,9 @@ def navigate_dataset_callbacks(app):
         if folder is None or fname is None:
             raise  PreventUpdate
         # Load the dataset
-        df = DataHandler(folder + "/" + fname)
-        return [{"label": i, "value": i} for i in list(df.indices.keys())]
+        df = read_dataset(folder + "/" + fname)
+        return [{"label": i, "value": i} for i in
+                list(set(df.columns.get_level_values(0)))]
 
     @app.callback(
         Output("dropdown-feature", "options"),
@@ -159,8 +160,9 @@ def navigate_dataset_callbacks(app):
         if folder is None or fname is None or signal is None:
             raise  PreventUpdate
         # Load the dataset
-        df = DataHandler(folder + "/" + fname)
-        return [{"label": i, "value": i} for i in df.indices[signal]]
+        df = read_dataset(folder + "/" + fname)
+        return [{"label": i, "value": i} for i in
+                list(set(df[signal].columns.get_level_values(0)))]
 
     @app.callback(
         Output("dataset-visualization", "children"),
@@ -174,6 +176,5 @@ def navigate_dataset_callbacks(app):
             None:
             raise  PreventUpdate
         # Load the dataset
-        df = DataHandler(folder + "/" + fname)
-
-        return make_card(df.data[(signal, feature)])
+        df = read_dataset(folder + "/" + fname)
+        return make_card(df[(signal, feature)])
