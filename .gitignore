@@ -8,3 +8,5 @@ __pycache__/
 github_notes/
 
 # Files
+.env
+*.png

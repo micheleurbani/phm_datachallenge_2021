@@ -148,7 +148,7 @@ def navigate_dataset_callbacks(app):
         # Load the dataset
         df = read_dataset(folder + "/" + fname)
         return [{"label": i, "value": i} for i in
-                list(set(df.columns.get_level_values(0)))]
+                sorted(list(set(df.columns.get_level_values(0))))]
 
     @app.callback(
         Output("dropdown-feature", "options"),
@@ -162,7 +162,7 @@ def navigate_dataset_callbacks(app):
         # Load the dataset
         df = read_dataset(folder + "/" + fname)
         return [{"label": i, "value": i} for i in
-                list(set(df[signal].columns.get_level_values(0)))]
+                sorted(list(set(df[signal].columns.get_level_values(0))))]
 
     @app.callback(
         Output("dataset-visualization", "children"),
