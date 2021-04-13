@@ -30,6 +30,23 @@ class AAKR(object):
         self.VI = None  # placeholder for the inverse covariance matrix
         self.pipe = None  # placeholder for the transformation pipeline
 
+    def gaussian_rbf(self, distance):
+        """
+        Compute the Gaussian radial basis function.
+
+        Parameters
+        ----------
+        distance : (N_a)
+            array_like containing the distances between the observation and the
+            training data.
+        Return
+        ------
+        self
+            The objected updated with the kernel weights.
+        """
+        self.w = (1 / (2 * np.pi * self.h**2)**0.5) * \
+            np.exp(- distance**2 / (2 * self.h**2))
+
     def fit(self, X, Y=None):
         """
         Apply fit operations and save the pipeline.
@@ -54,6 +71,8 @@ class AAKR(object):
         )
         # Apply the transformation
         self.pipe.fit(X)
+        mask = self.pipe.named_steps["variancethreshold"].get_support()
+        self.features = X.columns[mask]
 
     def transform(self, X, Y=None):
         """
@@ -107,7 +126,6 @@ class AAKR(object):
         X, Y = self.transform(X, Y)
         return X, Y
 
-
     def predict(self, X, Y):
         """
         Reconstruct the signal.
@@ -135,10 +153,9 @@ class AAKR(object):
         # Compute the Mahalanobis distance
         r2 = cdist(X, Y, metric='mahalanobis', VI=self.VI)
         # Compute the kernel
-        self.w = (1 / (2 * np.pi * self.h**2)**0.5) * \
-            np.exp(- r2**2 / (2 * self.h**2))
+        self.gaussian_rbf(distance=r2)
         # Reconstruct the signal
-        return np.stack(
+        Y_hat = np.stack(
             [
                 np.array(
                     [np.average(X[:, j], axis=0, weights=self.w[:, i])
@@ -147,3 +164,63 @@ class AAKR(object):
                 for i in range(Y.shape[0])
             ]
         )
+        return Y, Y_hat
+
+
+class ModifiedAAKR(AAKR):
+
+    def __init__(self, h=1.0):
+        super().__init__(h=h)
+
+    def abs_normalized_distance(self, X, Y):
+        """
+        Implements the computation of the distance between the observations and
+        the training data as in [BARALDI2015_]:
+
+        Parameters
+        ----------
+        X : (N_a, N_features)
+            array_like containing training data.
+        Y : (N_b, N_features)
+            array_like containing the observations to be reconstructed.
+
+        Returns
+        -------
+        distance : (N_a, N_b, N_features)
+            array_like containing the distances of the i-th observation from
+            the j-th training example.
+
+        .. [BARALDI2015] Piero Baraldi, Francesco Di Maio, Pietro Turati,
+        Enrico Zio, Robust signal reconstruction for condition monitoring of
+        industrial components via a modified Auto Associative Kernel Regression
+        method, *Mechanical Systems and Signal Processing* 60–61:29-44 (2015)
+        https://doi.org/10.1016/j.ymssp.2014.09.013
+        """
+        def dist(x, y, V):
+            return np.abs(np.divide((x - y), V))
+        V = np.var(X, axis=0)
+        return np.stack([np.stack([dist(x, y, V) for x in X]) for y in Y])
+
+    @staticmethod
+    def permutation_matrix(x_obs):
+        """
+        Returns the matrix that order the elements of `x_obs` in decreasing
+        order, i.e. from the largest to the smallest difference.
+
+        Parameters
+        ----------
+        x_obs : (N_features, )
+            array_like is the observation vector.
+
+        Return
+        ------
+        permuation_matrix : (N_features, N_features)
+            array_like is the matrix which, when multiplied to a vector, only
+            modifies the order of the vector components.
+        """
+        n_features = len(x_obs)
+        sort_indexes = np.flip(np.argsort(x_obs))
+        P = np.zeros((n_features, n_features))
+        for i, _ in enumerate(P):
+            P[sort_indexes[i], i] = 1
+        return P

@@ -1,7 +1,7 @@
 
 import os
-import unittest
 import numpy as np
+import unittest
 from random import choice, seed
 from itertools import chain
 from core.data_handler import (
@@ -11,10 +11,7 @@ from core.data_handler import (
     read_dataset,
     load_training_dataset,
 )
-from core.aakr import AAKR
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import make_pipeline
-from sklearn.feature_selection import VarianceThreshold
+from core.aakr import AAKR, ModifiedAAKR
 
 
 seed("294845")
@@ -77,3 +74,33 @@ class TestAAKR(unittest.TestCase):
         # sets.
         X = self.aakr.transform(self.X)
         self.assertEqual(X.shape[1], Y.shape[1])
+
+    def test_features_retrieval(self):
+        Y = read_dataset("training_validation_2/class_0_101_data.csv")
+        Y = self.aakr.fit(Y)
+        mask = self.aakr.pipe.named_steps["variancethreshold"].get_support()
+        self.assertEqual(len(mask), Y.shape[1])
+
+
+class TestModifiedAAKR(unittest.TestCase):
+
+    def setUp(self):
+        self.X = load_training_dataset(percent_data=0.2)
+        self.aakr = ModifiedAAKR()
+        self.Y = read_dataset("training_validation_2/class_0_101_data.csv")
+
+    def test_abs_normalized_distance(self):
+        X, Y = self.aakr.fit_transform(self.X, self.Y)
+        dist_shape = self.aakr.abs_normalized_distance(X, Y).shape
+        self.assertEqual(
+            dist_shape,
+            (Y.shape[0], self.X.shape[0], Y.shape[1])
+        )
+
+    def test_permutation_matrix(self):
+        X, Y = self.aakr.fit_transform(self.X, self.Y)
+        rnd_obs = Y[np.random.randint(Y.shape[0]), :]
+        dist = self.aakr.abs_normalized_distance(X, rnd_obs)
+        P = self.aakr.permutation_matrix(dist)
+        p_rnd_obs = np.dot(rnd_obs, P)
+        self.assertGreaterEqual(p_rnd_obs[1], p_rnd_obs[-1])

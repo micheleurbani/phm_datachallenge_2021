@@ -35,7 +35,7 @@ def init_dashboard(server):
             ),
             dbc.Tab(aakr_viz, label="AAKR", tab_id="tab-aakr")
         ],
-        active_tab="tab-aakr"
+        active_tab="tab-aakr",
     )
 
     dash_app.layout = html.Div(
