@@ -168,14 +168,38 @@ class AAKR(object):
 
 
 class ModifiedAAKR(AAKR):
+    """
+    Implements the modified AAKR method in [BARALDI2015_].
 
-    def __init__(self, h=1.0):
+    Parameters
+    ----------
+    p : (N_features, )
+        array_like is the penalty vector for the features of the dataset. The
+        components are increasingly ordered.
+
+    .. [BARALDI2015] Piero Baraldi, Francesco Di Maio, Pietro Turati,
+    Enrico Zio, Robust signal reconstruction for condition monitoring of
+    industrial components via a modified Auto Associative Kernel Regression
+    method, *Mechanical Systems and Signal Processing* 60–61:29-44 (2015)
+    https://doi.org/10.1016/j.ymssp.2014.09.013
+    """
+
+    def __init__(self, p, h=1.0):
         super().__init__(h=h)
+        self.penalty = self.sanity_check_p(p)
+
+    @staticmethod
+    def sanity_check_p(p):
+        p = np.array(p)
+        if p == np.sort(p):
+            return p
+        else:
+            raise ValueError("The penalty vector is defined incorrectly.")
 
     def abs_normalized_distance(self, X, Y):
         """
         Implements the computation of the distance between the observations and
-        the training data as in [BARALDI2015_]:
+        the training data as in [BARALDI2015_].
 
         Parameters
         ----------
@@ -190,11 +214,6 @@ class ModifiedAAKR(AAKR):
             array_like containing the distances of the i-th observation from
             the j-th training example.
 
-        .. [BARALDI2015] Piero Baraldi, Francesco Di Maio, Pietro Turati,
-        Enrico Zio, Robust signal reconstruction for condition monitoring of
-        industrial components via a modified Auto Associative Kernel Regression
-        method, *Mechanical Systems and Signal Processing* 60–61:29-44 (2015)
-        https://doi.org/10.1016/j.ymssp.2014.09.013
         """
         def dist(x, y, V):
             return np.abs(np.divide((x - y), V))
@@ -224,3 +243,27 @@ class ModifiedAAKR(AAKR):
         for i, _ in enumerate(P):
             P[sort_indexes[i], i] = 1
         return P
+
+    @staticmethod
+    def transformation(D, P, x_obs):
+        """
+        Implement the non-homogeneous transformation introduced in
+        [BARALDI2015_].
+
+        Parameters
+        ----------
+        D : (N_features, N_features)
+            array_like, it is the diagonal matrix having increasing entries so
+            that :math:`tr(\boldsymbol{D}) = \boldsymbol{p}`.
+        P : (N_features, N_features)
+            array_like, the permutation matrix obtained through
+            :method:`core.aakr.ModifiedAAKR.permutation_matrix`.
+        x_obs : (N_features, )
+            array_like is the observation vector.
+
+        Return
+        ------
+        psi : (N_features, )
+            array_like, it is the projection of `x_obs` in a new space.
+        """
+        return np.dot(np.dot(D, P), x_obs)
