@@ -1,5 +1,6 @@
 
 import numpy as np
+import pandas as pd
 from sklearn.covariance import (
     empirical_covariance,
 )
@@ -26,9 +27,10 @@ class AAKR(object):
         self.h = h
 
         # Attributes
-        self.w = None  # the weights of each observation in X
+        self.w = None  # placeholder for the weights of each observation in X
         self.VI = None  # placeholder for the inverse covariance matrix
         self.pipe = None  # placeholder for the transformation pipeline
+        self.features = None  # placeholder for the selected featueres
 
     def gaussian_rbf(self, distance):
         """
@@ -42,12 +44,14 @@ class AAKR(object):
         Return
         ------
         self
-            The objected updated with the kernel weights.
+            The object updated with the kernel weights.
         """
-        self.w = (1 / (2 * np.pi * self.h**2)**0.5) * \
+        w = (1 / (2 * np.pi * self.h**2)**0.5) * \
             np.exp(- distance**2 / (2 * self.h**2))
+        self.w = w
+        return w
 
-    def fit(self, X, Y=None):
+    def fit(self, X, Y):
         """
         Apply fit operations and save the pipeline.
 
@@ -69,15 +73,19 @@ class AAKR(object):
             SimpleImputer(),
             VarianceThreshold(threshold=0.01),
         )
+        # Perform sanity checks
+        assert type(X) is pd.DataFrame
+        assert type(Y) is pd.DataFrame
         # Apply the transformation
-        self.pipe.fit(X)
+        self.pipe.fit(
+            pd.concat([X, Y])
+        )
         mask = self.pipe.named_steps["variancethreshold"].get_support()
         self.features = X.columns[mask]
 
-    def transform(self, X, Y=None):
+    def transform(self, X, Y):
         """
-        Apply the tranformation to the training `X` data and optionally to
-        test `Y` data.
+        Apply the tranformation to the training `X` data and test `Y` data.
 
         Parameters
         ----------
@@ -95,11 +103,8 @@ class AAKR(object):
         """
         if self.pipe:
             X = self.pipe.transform(X)
-            if Y is not None:
-                Y = self.pipe.transform(Y)
-                return X, Y
-            else:
-                return X
+            Y = self.pipe.transform(Y)
+            return X, Y
         else:
             raise BaseException("There is no fitted pipeline.")
 
