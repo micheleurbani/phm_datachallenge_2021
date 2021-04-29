@@ -38,13 +38,18 @@ class AAKR(object):
 
         Parameters
         ----------
-        distance : (N_a)
-            array_like containing the distances between the observation and the
-            training data.
+        distance : (N_a, N_b)
+            array_like containing the distances between the observations and
+            the training data. `N_a` corresponds to the number of samples in
+            the training set, whereas `N_b` is the number of observations in
+            the test set.
         Return
         ------
         self
             The object updated with the kernel weights.
+        w : (N_a, N_b)
+            array_like containing the weights of each training sample with
+            respect to each observation.
         """
         w = (1 / (2 * np.pi * self.h**2)**0.5) * \
             np.exp(- distance**2 / (2 * self.h**2))
@@ -133,7 +138,8 @@ class AAKR(object):
 
     def predict(self, X, Y):
         """
-        Reconstruct the signal.
+        Reconstruct the signal. The method operates on numpy arrays internally,
+        but it returns two pandas dataframes.
 
         Parameters
         ----------
@@ -144,8 +150,12 @@ class AAKR(object):
 
         Returns
         -------
+        Y : (N_b, N_selected_features)
+            array_like containing only the selected features of the observed
+            signal.
         Y_hat
-            The reconstructed signal.
+            array_like containing only the selected features of the
+            reconstructed signal.
         """
         assert X.ndim >= 2
         assert Y.ndim >= 2
@@ -160,15 +170,18 @@ class AAKR(object):
         # Compute the kernel
         self.gaussian_rbf(distance=r2)
         # Reconstruct the signal
-        Y_hat = np.stack(
-            [
+        x_nc = []
+        for i in range(Y.shape[0]):
+            x_nc.append(
                 np.array(
                     [np.average(X[:, j], axis=0, weights=self.w[:, i])
-                        for j in range(X.shape[1])]
+                    for j in range(X.shape[1])]
                 )
-                for i in range(Y.shape[0])
-            ]
-        )
+            )
+        Y_hat = np.stack(x_nc)
+        # Reconstruct the dataframes
+        Y = pd.DataFrame(Y, columns=self.features)
+        Y_hat = pd.DataFrame(Y_hat, columns=self.features)
         return Y, Y_hat
 
 
