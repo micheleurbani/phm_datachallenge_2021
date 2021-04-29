@@ -92,12 +92,9 @@ class TestAAKR(unittest.TestCase):
     def test_predict(self):
         Y, Y_hat = self.aakr.predict(self.X, self.Y)
         self.assertIsNotNone(self.aakr.VI)
-
-#     def test_features_retrieval(self):
-#         Y = read_dataset("training_validation_2/class_0_101_data.csv")
-#         Y = self.aakr.fit(Y)
-#         mask = self.aakr.pipe.named_steps["variancethreshold"].get_support()
-#         self.assertEqual(len(mask), Y.shape[1])
+        self.assertEqual(len(Y), len(Y_hat))
+        self.assertGreaterEqual(self.Y.shape[1], Y.shape[1])
+        self.assertGreaterEqual(self.Y_hat.shape[1], Y_hat.shape[1])
 
 
 # class TestModifiedAAKR(unittest.TestCase):
