@@ -68,14 +68,13 @@ class TestAAKR(unittest.TestCase):
         self.X = load_training_dataset(percent_data=0.2)
         # Select a random dataset containing failures
         fname = sample(os.listdir("training_validation_2"), 1)
-        print(fname)
         self.Y = read_dataset(
             os.path.join(
                 "training_validation_2",
                 *fname
             )
         )
-        self.aakr = AAKR()
+        self.aakr = AAKR(h=5)
 
     def test_fit(self):
         self.aakr.fit(self.X, self.Y)

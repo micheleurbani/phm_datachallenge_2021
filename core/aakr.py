@@ -208,25 +208,21 @@ class AAKR(object):
         """
         assert X.ndim >= 2
         assert Y.ndim >= 2
-        # Fit  and transform the training and test data
-        X, Y = self.fit_transform(X, Y)
-        # Estimate the empirical covariance of the dataset X
-        V = empirical_covariance(X)
-        self.VI = np.zeros_like(V)
-        np.fill_diagonal(self.VI, 1/np.diag(V))
+        # If the pipe is empty, raise an error
+        if self.pipe is None:
+            raise BaseException("The estimator has not yet been fitted.")
         # Compute the Mahalanobis distance
         r2 = cdist(X, Y, metric='mahalanobis', VI=self.VI)
+        # r2 = self.mahalanobis_distance(X, Y, self.VI)
         # Compute the kernel
-        self.gaussian_rbf(distance=r2)
+        w = self.gaussian_rbf(distance=r2)
         # Reconstruct the signal
         x_nc = []
         for i in range(Y.shape[0]):
-            x_nc.append(
-                np.array(
-                    [np.average(X[:, j], axis=0, weights=self.w[:, i])
-                    for j in range(X.shape[1])]
-                )
-            )
+            x = []
+            for j in range(X.shape[1]):
+                x.append(np.average(X[:, j], weights=w[:, i]))
+            x_nc.append(np.array(x))
         Y_hat = np.stack(x_nc)
         # Reconstruct the dataframes
         Y = pd.DataFrame(Y, columns=self.features)
