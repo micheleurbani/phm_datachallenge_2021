@@ -128,14 +128,11 @@ class AAKR(object):
         # Store the names of the selected features
         mask = self.pipe.named_steps["variancethreshold"].get_support()
         self.features = X.columns[mask]
-        # Estimate the covariance matrix
-        V = empirical_covariance(X)
-        self.VI = np.zeros_like(V)
-        np.fill_diagonal(self.VI, 1/np.diag(V))
 
-    def transform(self, X, Y):
+    def transform(self, X, Y=None):
         """
         Apply the tranformation to the training `X` data and test `Y` data.
+        The invers covariance matrix is estimated and stored for future use.
 
         Parameters
         ----------
@@ -153,12 +150,20 @@ class AAKR(object):
         """
         if self.pipe:
             X = self.pipe.transform(X)
-            Y = self.pipe.transform(Y)
-            return X, Y
+            # Now that the data has been transformed, the inverse of the
+            # covariance can be estimated and stored
+            V = empirical_covariance(X)
+            self.VI = np.zeros_like(V)
+            np.fill_diagonal(self.VI, 1/np.diag(V))
+            if Y is not None:
+                Y = self.pipe.transform(Y)
+                return X, Y
+            else:
+                return X, None
         else:
             raise BaseException("There is no fitted pipeline.")
 
-    def fit_transform(self, X, Y):
+    def fit_transform(self, X, Y=None):
         """
         Combines fit and transform method.
 
@@ -176,7 +181,6 @@ class AAKR(object):
         Y : (N_b, N_selected_features)
             array_like containing the trasformed test dataset.
         """
-
         self.fit(X, Y)
         X, Y = self.transform(X, Y)
         return X, Y

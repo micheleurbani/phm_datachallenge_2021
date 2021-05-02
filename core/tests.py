@@ -93,7 +93,8 @@ class TestAAKR(unittest.TestCase):
         self.assertGreaterEqual(self.Y.shape[1], Y.shape[1])
 
     def test_predict(self):
-        Y, Y_hat = self.aakr.predict(self.X, self.Y)
+        X, Y = self.aakr.fit_transform(self.X, self.Y)
+        Y, Y_hat = self.aakr.predict(X, Y)
         self.assertIsNotNone(self.aakr.VI)
         self.assertEqual(len(Y), len(Y_hat))
         self.assertGreaterEqual(self.Y.shape[1], Y.shape[1])
