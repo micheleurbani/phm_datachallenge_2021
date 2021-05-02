@@ -229,16 +229,39 @@ class AAKR(object):
         Y_hat = pd.DataFrame(Y_hat, columns=self.features)
         return Y, Y_hat
 
+    def score(self, x_obs, x_nc):
+        """
+        Score the performance of the classifier using the Mean Square Error
+        (MSE) of the reconstructions on the validation set.
+
+        Parameters
+        ----------
+        x_obs : (N_a, N_features)
+            array_like containing the observation data.
+        x_nc : (N_a, N_features)
+            array_like containing the reconstructed signals.
+
+        Returns
+        -------
+        score : scalar
+            The MSE value obtained on the given training dataset.
+        """
+        n_samples = x_obs.shape[0]
+        return np.sum((x_obs - x_nc)**2 / n_samples).sum()
+
+    def _reset(self):
+        """
+        Reset the attibutes of the estimator.
+        """
+        self.VI = None
+        self.features = None
+        self.pipe = None
+        self.w = None
+
 
 class ModifiedAAKR(AAKR):
     """
     Implements the modified AAKR method in [BARALDI2015_].
-
-    Parameters
-    ----------
-    p : (N_features, )
-        array_like is the penalty vector for the features of the dataset. The
-        components are increasingly ordered.
 
     .. [BARALDI2015] Piero Baraldi, Francesco Di Maio, Pietro Turati,
     Enrico Zio, Robust signal reconstruction for condition monitoring of
