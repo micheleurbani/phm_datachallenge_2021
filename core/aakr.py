@@ -56,7 +56,41 @@ class AAKR(object):
         self.w = w
         return w
 
-    def fit(self, X, Y):
+    @staticmethod
+    def mahalanobis_distance(a1, a2, VI):
+        """
+        Return the Mahalanobis distance between `a1` and `a2` using the
+        inverse covariance matrix `VI`.
+
+        Parameters
+        ----------
+        a1 : (N_a, N_features)
+            array_like
+        a2 : (N_b, N_features)
+            array_like
+        VI : (N_features, N_features)
+            The diagonal matrix of the inverse of the covariance of the j-th
+            hostorical signal (i.e., it is calculated using only the training
+            data).
+
+        Returns
+        -------
+        distance : (N_a, N_b)
+            A matrix containing the Mahalanobis distance of the observations
+            against the training data.
+        """
+        print(a1.shape, a2.shape)
+        distance = np.zeros((a1.shape[0], a2.shape[0]))
+        for j in range(a2.shape[0]):
+            for i in range(a1.shape[0]):
+                # Compute the difference and add a dimension
+                distance[i, j] = np.dot(
+                    np.dot(a2[j, :] - a1[i, :], VI),
+                    a2[j, :] - a1[i, :]
+                )
+        return distance
+
+    def fit(self, X, Y=None):
         """
         Apply fit operations and save the pipeline.
 
@@ -73,6 +107,8 @@ class AAKR(object):
             The fitted estimator.
 
         """
+        # Reset the classifier attributes
+        self._reset()
         # Create pipeline for pre-processing of data
         self.pipe = make_pipeline(
             SimpleImputer(),
@@ -80,13 +116,22 @@ class AAKR(object):
         )
         # Perform sanity checks
         assert type(X) is pd.DataFrame
-        assert type(Y) is pd.DataFrame
+        if Y is None:
+            data = X
+        else:
+            assert type(Y) is pd.DataFrame
+            data = pd.concat([X, Y])
         # Apply the transformation
         self.pipe.fit(
-            pd.concat([X, Y])
+            data
         )
+        # Store the names of the selected features
         mask = self.pipe.named_steps["variancethreshold"].get_support()
         self.features = X.columns[mask]
+        # Estimate the covariance matrix
+        V = empirical_covariance(X)
+        self.VI = np.zeros_like(V)
+        np.fill_diagonal(self.VI, 1/np.diag(V))
 
     def transform(self, X, Y):
         """

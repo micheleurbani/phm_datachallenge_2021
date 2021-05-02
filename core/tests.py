@@ -12,6 +12,7 @@ from core.data_handler import (
     load_training_dataset,
 )
 from core.aakr import AAKR, ModifiedAAKR
+from core.validation import cross_validation
 
 
 seed("294845")
@@ -66,10 +67,12 @@ class TestAAKR(unittest.TestCase):
     def setUp(self):
         self.X = load_training_dataset(percent_data=0.2)
         # Select a random dataset containing failures
+        fname = sample(os.listdir("training_validation_2"), 1)
+        print(fname)
         self.Y = read_dataset(
             os.path.join(
                 "training_validation_2",
-                *sample(os.listdir("training_validation_2"), 1)
+                *fname
             )
         )
         self.aakr = AAKR()
@@ -94,7 +97,7 @@ class TestAAKR(unittest.TestCase):
         self.assertIsNotNone(self.aakr.VI)
         self.assertEqual(len(Y), len(Y_hat))
         self.assertGreaterEqual(self.Y.shape[1], Y.shape[1])
-        self.assertGreaterEqual(self.Y_hat.shape[1], Y_hat.shape[1])
+        self.assertGreaterEqual(self.Y.shape[1], Y_hat.shape[1])
 
 
 # class TestModifiedAAKR(unittest.TestCase):
@@ -121,15 +124,22 @@ class TestAAKR(unittest.TestCase):
 #         self.assertGreaterEqual(p_rnd_obs[1], p_rnd_obs[-1])
 
 
-# class TestTraining(unittest.TestCase):
+class TestTraining(unittest.TestCase):
 
-#     def setUp(self):
-#         self.X = load_training_dataset(percent_data=0.2)
-#         self.aakr = ModifiedAAKR
-#         self.Y = read_dataset("training_validation_2/class_0_101_data.csv")
+    def setUp(self):
+        self.X = load_training_dataset(percent_data=0.2)
+        self.aakr = ModifiedAAKR
+        fname = sample(os.listdir("training_validation_2"), 1)
+        print(fname)
+        self.Y = read_dataset(
+            os.path.join(
+                "training_validation_2",
+                *fname
+            )
+        )
 
-#     def test_training(self):
-#         cross_validation(
-#             classifier=self.aakr,
-#             data=self.X,
-#         )
+    def test_training(self):
+        cross_validation(
+            classifier=self.aakr,
+            data=self.X,
+        )
