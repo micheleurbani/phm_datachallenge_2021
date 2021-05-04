@@ -12,7 +12,7 @@ from core.data_handler import (
     load_training_dataset,
 )
 from core.aakr import AAKR, ModifiedAAKR
-from core.validation import cross_validation
+from core.validation import cross_validation_score
 
 
 seed("294845")
@@ -138,8 +138,14 @@ class TestTraining(unittest.TestCase):
             )
         )
 
-    def test_training(self):
-        cross_validation(
+    def test_cross_validation(self):
+        cv = 3
+        scores = cross_validation_score(
             classifier=self.aakr,
             data=self.X,
+            cv=cv,
+            h=5
         )
+        self.assertEqual(len(scores), cv)
+        for s in scores:
+            self.assertGreater(s, 0.0)

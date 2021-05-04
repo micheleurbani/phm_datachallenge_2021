@@ -107,8 +107,6 @@ class AAKR(object):
             The fitted estimator.
 
         """
-        # Reset the classifier attributes
-        self._reset()
         # Create pipeline for pre-processing of data
         self.pipe = make_pipeline(
             SimpleImputer(),
@@ -202,7 +200,7 @@ class AAKR(object):
         Y : (N_b, N_selected_features)
             array_like containing only the selected features of the observed
             signal.
-        Y_hat
+        Y_hat : (N_b, N_selected_features)
             array_like containing only the selected features of the
             reconstructed signal.
         """
