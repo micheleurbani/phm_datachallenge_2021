@@ -32,6 +32,9 @@ class AAKR(object):
         self.pipe = None  # placeholder for the transformation pipeline
         self.features = None  # placeholder for the selected featueres
 
+    def __str__(self):
+        return "<core.AAKR> \t h={:n}".format(self.h)
+
     def gaussian_rbf(self, distance):
         """
         Compute the Gaussian radial basis function.
@@ -268,17 +271,13 @@ class ModifiedAAKR(AAKR):
     https://doi.org/10.1016/j.ymssp.2014.09.013
     """
 
-    def __init__(self, p, h=1.0):
+    def __init__(self, h=1.0, p=None, k=2.0):
         super().__init__(h=h)
-        self.penalty = self.sanity_check_p(p)
+        self.p = p  # placeholder for the vector of penalties
+        self.k = k
 
-    @staticmethod
-    def sanity_check_p(p):
-        p = np.array(p)
-        if p == np.sort(p):
-            return p
-        else:
-            raise ValueError("The penalty vector is defined incorrectly.")
+    def __str__(self):
+        return "<core.AAKR> \t h={:n}".format(self.h)
 
     def abs_normalized_distance(self, X, Y):
         """
@@ -351,3 +350,81 @@ class ModifiedAAKR(AAKR):
             array_like, it is the projection of `x_obs` in a new space.
         """
         return np.dot(np.dot(D, P), x_obs)
+
+    def projection(self, X, Y, abs_norm_dist):
+        """
+        Perform the projection of a point into the new space, as in
+        [BARALDI2015_].
+
+        Parameters
+        ----------
+        X : (N_a, N_features)
+            array_like containing the set of training observations.
+        Y : (N_b, N_features)
+            array_like containing the observed signals.
+
+        Returns
+        -------
+        phi_X : 
+
+        phi_Y : 
+        """
+        # Compute the absolute normalized differences
+        for i, y in enumerate(Y):
+            # Compute the permuation matrix
+            self.permutation_matrix(abs_norm_dist[i])
+
+    def fit(self):
+        """
+        Add the penalty vector of the right size and defined according to the
+        the attribute `penalty_mode`.
+        """
+        super.fit()
+        # Define a penalty vector of the right size.
+        self.p = np.array([self.k**(2*(i+1))
+                          for i in range(len(self.features))])
+
+    def predict(self, X, Y):
+        """
+        Reconstruct the signal according to the modified AAKR proposed by
+        [BARALDI2015_].
+
+        Parameters
+        ----------
+        X : (N_a, N_features)
+            array_like containing training data.
+        Y : (N_b, N_features)
+            array_like containing the observations to be reconstructed.
+
+        Returns
+        -------
+        Y : (N_b, N_selected_features)
+            array_like containing only the selected features of the observed
+            signal.
+        Y_hat : (N_b, N_selected_features)
+            array_like containing only the selected features of the
+            reconstructed signal.
+        """
+        assert X.ndim >= 2
+        assert Y.ndim >= 2
+        # If the pipe is empty, raise an error
+        if self.pipe is None:
+            raise BaseException("The estimator has not yet been fitted.")
+        # Compute the projection of X (x_obs_nc) and Y (x_obs)
+        phi_X, phi_Y = self.projection(X, Y)
+        # Compute the Euclidean distance between the points
+        r2 = cdist(phi_X, phi_Y, metric='euclidean')
+        # Compute the kernel
+        w = self.gaussian_rbf(distance=r2)
+        # Reconstruct the signal
+        x_nc = []
+        for i in range(Y.shape[0]):
+            x = []
+            for j in range(X.shape[1]):
+                x.append(np.average(X[:, j], weights=w[:, i]))
+            x_nc.append(np.array(x))
+        Y_hat = np.stack(x_nc)
+        # Reconstruct the dataframes
+        Y = pd.DataFrame(Y, columns=self.features)
+        Y_hat = pd.DataFrame(Y_hat, columns=self.features)
+        return Y, Y_hat

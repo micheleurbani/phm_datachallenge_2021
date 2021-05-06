@@ -12,7 +12,7 @@ from core.data_handler import (
     load_training_dataset,
 )
 from core.aakr import AAKR, ModifiedAAKR
-from core.validation import cross_validation_score
+from core.validation import cross_validation_score, grid_search
 
 
 seed("294845")
@@ -128,7 +128,6 @@ class TestTraining(unittest.TestCase):
 
     def setUp(self):
         self.X = load_training_dataset(percent_data=0.2)
-        self.aakr = ModifiedAAKR
         fname = sample(os.listdir("training_validation_2"), 1)
         print(fname)
         self.Y = read_dataset(
