@@ -276,9 +276,12 @@ class ModifiedAAKR(AAKR):
         self.p = p  # placeholder for the vector of penalties
         self.k = k
 
+        self.D = None  # Placeholder for the diagonal matrix with penalties
+
     def __str__(self):
         return "<core.AAKR> \t h={:n}".format(self.h)
 
+    @staticmethod
     def abs_normalized_distance(self, X, Y):
         """
         Implements the computation of the distance between the observations and
@@ -288,6 +291,7 @@ class ModifiedAAKR(AAKR):
         ----------
         X : (N_a, N_features)
             array_like containing training data.
+
         Y : (N_b, N_features)
             array_like containing the observations to be reconstructed.
 
@@ -317,8 +321,8 @@ class ModifiedAAKR(AAKR):
         Return
         ------
         permuation_matrix : (N_features, N_features)
-            array_like is the matrix which, when multiplied to a vector, only
-            modifies the order of the vector components.
+            array_like is the matrix which, when multiplied to a vector,
+            orders the vector components in decreasing order.
         """
         n_features = len(x_obs)
         sort_indexes = np.flip(np.argsort(x_obs))
@@ -337,10 +341,12 @@ class ModifiedAAKR(AAKR):
         ----------
         D : (N_features, N_features)
             array_like, it is the diagonal matrix having increasing entries so
-            that :math:`tr(\boldsymbol{D}) = \boldsymbol{p}`.
+            that :math:`tr(\\boldsymbol{D}) = \\boldsymbol{p}`.
+
         P : (N_features, N_features)
             array_like, the permutation matrix obtained through
             :method:`core.aakr.ModifiedAAKR.permutation_matrix`.
+
         x_obs : (N_features, )
             array_like is the observation vector.
 
@@ -353,7 +359,7 @@ class ModifiedAAKR(AAKR):
 
     def projection(self, X, Y, abs_norm_dist):
         """
-        Perform the projection of a point into the new space, as in
+        Perform the projection of a trajectory into the new space, as in
         [BARALDI2015_].
 
         Parameters
@@ -369,20 +375,27 @@ class ModifiedAAKR(AAKR):
 
         phi_Y : 
         """
+        abs_norm_dist = self.abs_normalized_distance(X, Y)
         # Compute the absolute normalized differences
         for i, y in enumerate(Y):
-            # Compute the permuation matrix
-            self.permutation_matrix(abs_norm_dist[i])
+            for j, x in enumerate(X):
+                # Compute the permuation matrix
+                self.permutation_matrix(abs_norm_dist[i, j, :])
+                # Project the training observation and the observed signal
+                self.transformation()
 
     def fit(self):
         """
-        Add the penalty vector of the right size and defined according to the
-        the attribute `penalty_mode`.
+        Add the penalty vector of the right size defined according to the
+        attribute `penalty_mode`, and build the matrix `D`.
         """
         super.fit()
         # Define a penalty vector of the right size.
         self.p = np.array([self.k**(2*(i+1))
                           for i in range(len(self.features))])
+        # Define the diagonal matrix `D`
+        self.D = np.zeros_like(self.p)
+        np.fill_diagonal(self.D, np.sqrt(self.p))
 
     def predict(self, X, Y):
         """
