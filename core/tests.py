@@ -100,20 +100,28 @@ class TestAAKR(unittest.TestCase):
         self.assertGreaterEqual(self.Y.shape[1], Y_hat.shape[1])
 
 
-# class TestModifiedAAKR(unittest.TestCase):
+class TestModifiedAAKR(unittest.TestCase):
 
-#     def setUp(self):
-#         self.X = load_training_dataset(percent_data=0.2)
-#         self.aakr = ModifiedAAKR()
-#         self.Y = read_dataset("training_validation_2/class_0_101_data.csv")
+    def setUp(self):
+        self.X = load_training_dataset(percent_data=0.2)
+        self.aakr = ModifiedAAKR(h=5)
+        fname = sample(os.listdir("training_validation_2"), 1)
+        print(fname)
+        self.Y = read_dataset(
+            os.path.join(
+                "training_validation_2",
+                *fname
+            )
+        )
 
-#     def test_abs_normalized_distance(self):
-#         X, Y = self.aakr.fit_transform(self.X, self.Y)
-#         dist_shape = self.aakr.abs_normalized_distance(X, Y).shape
-#         self.assertEqual(
-#             dist_shape,
-#             (Y.shape[0], self.X.shape[0], Y.shape[1])
-#         )
+    def test_abs_normalized_distance(self):
+        X, Y = self.aakr.fit_transform(self.X, self.Y)
+        dist = self.aakr.abs_normalized_distance(X, Y)
+        self.assertEqual(
+            dist.shape,
+            (Y.shape[0], self.X.shape[0], Y.shape[1])
+        )
+        self.assertTrue(np.all(dist >= 0))
 
 #     def test_permutation_matrix(self):
 #         X, Y = self.aakr.fit_transform(self.X, self.Y)

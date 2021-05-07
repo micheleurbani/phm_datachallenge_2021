@@ -271,18 +271,18 @@ class ModifiedAAKR(AAKR):
     https://doi.org/10.1016/j.ymssp.2014.09.013
     """
 
-    def __init__(self, h=1.0, p=None, k=2.0):
+    def __init__(self, h=1.0, k=2.0, p=None):
         super().__init__(h=h)
-        self.p = p  # placeholder for the vector of penalties
         self.k = k
 
+        self.p = p  # Placeholder for the vector of penalties
         self.D = None  # Placeholder for the diagonal matrix with penalties
 
     def __str__(self):
         return "<core.AAKR> \t h={:n}".format(self.h)
 
     @staticmethod
-    def abs_normalized_distance(self, X, Y):
+    def abs_normalized_distance(X, Y):
         """
         Implements the computation of the distance between the observations and
         the training data as in [BARALDI2015_].
