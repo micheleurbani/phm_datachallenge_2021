@@ -123,13 +123,14 @@ class TestModifiedAAKR(unittest.TestCase):
         )
         self.assertTrue(np.all(dist >= 0))
 
-#     def test_permutation_matrix(self):
-#         X, Y = self.aakr.fit_transform(self.X, self.Y)
-#         rnd_obs = Y[np.random.randint(Y.shape[0]), :]
-#         dist = self.aakr.abs_normalized_distance(X, rnd_obs)
-#         P = self.aakr.permutation_matrix(dist)
-#         p_rnd_obs = np.dot(rnd_obs, P)
-#         self.assertGreaterEqual(p_rnd_obs[1], p_rnd_obs[-1])
+    def test_permutation_matrix(self):
+        X, Y = self.aakr.fit_transform(self.X, self.Y)
+        rnd_obs = Y[np.random.randint(Y.shape[0]), :]
+        dist = self.aakr.abs_normalized_distance(X, rnd_obs)
+        P = self.aakr.permutation_matrix(dist)
+        p_rnd_obs = np.dot(rnd_obs, P)
+        for i in range(len(p_rnd_obs) - 1):
+            self.assertGreaterEqual(p_rnd_obs[i], p_rnd_obs[i + 1])
 
 
 class TestTraining(unittest.TestCase):
